@@ -36,19 +36,30 @@ graph LR
 - **Performance Metrics**: Built-in latency tracking and throughput calculation (events/sec).
 - **Graceful Shutdown**: Handles task cancellation and queue joining correctly.
 
-## 🏃 Run the Demo
+## 🖥️ Streamlit Dashboard
+
+For better visibility, you can run the **Real-Time Monitor** using Streamlit:
 
 ```bash
-# Clone the repository
-git clone https://github.com/MeghanaMareedu13/realtime-event-processor.git
-cd realtime-event-processor
-
 # Install dependencies
 pip install -r requirements.txt
 
-# Run the simulation
+# Launch the dashboard
+streamlit run streamlit_app.py
+```
+
+### Dashboard Features:
+- **Live Metrics**: Monitor throughput and duration in real-time.
+- **Activity Log**: Watch events being processed by workers in a console-like view.
+- **Configurable Load**: Change the number of producers and consumer workers on-the-fly.
+
+## 🏃 Run the CLI Demo
+
+If you prefer the command line:
+```bash
 python main.py
 ```
+
 
 ## 📊 Why it Matters
 

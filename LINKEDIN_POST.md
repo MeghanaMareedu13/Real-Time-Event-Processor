@@ -10,7 +10,7 @@
 
 In technical interviews, this is where most candidates freeze. But if you understand **Asynchronous Programming**, you have the answer.
 
-For Day 8 of my 30-day challenge, I’ve built a **Real-Time Event Engine** that doesn't just simulate data—it handles the real world. This project mirrors the event-driven architecture I implemented at Virtusa to reduce system latency by **35%**.
+For Day 8 of my 30-day challenge, I’ve built a **Real-Time Event Engine** that doesn't just simulate data—it handles the real world. This project mirrors the event-driven architecture I implemented in a previous technical role to reduce system latency by **35%**.
 
 � **What’s under the hood?**
 
@@ -32,7 +32,7 @@ This architecture handles traffic bursts effortlessly on a single thread. It’s
 
 ---
 
-#Python #Asyncio #SoftwareEngineering #DataEngineering #30DayChallenge #BackendDev #Performance #TexasTech #Virtusa #Hiring #OpenToWork
+#Python #Asyncio #SoftwareEngineering #DataEngineering #30DayChallenge #BackendDev #Performance #TexasTech #Hiring #OpenToWork
 
 ---
 

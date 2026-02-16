@@ -63,7 +63,7 @@ python main.py
 
 ## 📊 Why it Matters
 
-At Virtusa, I saw how synchronous processing can create massive bottlenecks. Moving to an **async architecture** allowed us to:
+In my previous experience, I saw how synchronous processing can create massive bottlenecks. Moving to an **async architecture** allowed us to:
 1. Increase system throughput by **40%**.
 2. Reduce average event processing latency by **35%**.
 3. Handle traffic bursts without crashing services.

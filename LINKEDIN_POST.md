@@ -10,25 +10,25 @@
 
 In technical interviews, this is where most candidates freeze. But if you understand **Asynchronous Programming**, you have the answer.
 
-For Day 8 of my 30-day challenge, I’m open-sourcing my **Real-Time Event Processor**. This project specifically mirrors a system I built at Virtusa that reduced latency by **35%**.
+For Day 8 of my 30-day challenge, I’ve built a **Real-Time Event Engine** that doesn't just simulate data—it handles the real world. This project mirrors the event-driven architecture I implemented at Virtusa to reduce system latency by **35%**.
 
-💡 **The Technical Deep-Dive:**
+� **What’s under the hood?**
 
-Most Python scripts run **Synchronously** (Step A -> Step B). If Step A is a slow database write, the whole system waits. 
-
-Using **Asyncio**, I built a system that:
-1️⃣ **Never Waits**: While one "Worker" is waiting for a database response, the "Engine" is already ingestion and validating the next 5 events.
-2️⃣ **Producer-Consumer Pattern**: Separating data ingestion from data processing allows for extreme scalability. Need more speed? Just add more consumers!
-3️⃣ **Type Safety with Pydantic**: In high-speed systems, a single bad data point can crash everything. I use Pydantic models to validate every event in microseconds.
+✅ **Live Data Streaming**: My engine is currently fetching real-time Bitcoin and Ethereum prices via the CoinGecko API every 10 seconds.
+✅ **Asyncio & Non-Blocking I/O**: While one worker processes a price alert, the engine is already validating the next 5 events. It never sleeps.
+✅ **Manual Injection Tool**: I built a custom dashboard where you can manually "inject" system alerts or user signups into the live stream to see how the workers handle priority shifts in real-time.
+✅ **Type Safety with Pydantic**: Every microsecond counts. I use Pydantic to ensure 100% data integrity before an event even hits the queue.
 
 **The Results:**
-In my simulations, this architecture can process thousands of events per minute on a single thread with minimal CPU overhead. 
+This architecture handles traffic bursts effortlessly on a single thread. It’s the difference between a system that "works" and a system that "scales."
 
-🔗 **Check out the code and architectural diagrams here:** [Add your GitHub Link]
+🔗 **See the Live Dashboard & Architecture here:** [Add your Streamlit Link]
+🐙 **GitHub Repo:** [Add your GitHub Link]
 
-**Recruiters & Engineering Leads:** I don't just write code; I design systems for performance and scale. I'm ready to bring this "Async Mindset" to your engineering team. 📈
+**Recruiters & Engineering Leads:** I specialize in building the high-throughput infrastructure that powers modern data platforms. I’m ready to bring this "Async Mindset" to your team. 📈
 
 **Asyncio or Multiprocessing? What's your go-to for scaling Python?** 👇
+
 
 ---
 

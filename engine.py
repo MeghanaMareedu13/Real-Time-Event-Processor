@@ -31,6 +31,34 @@ class RealTimeProcessor:
         
         logger.info(f"Producer {name} finished ingesting {len(events)} events.")
 
+    async def real_data_producer(self, name: str):
+        """Fetches REAL data from a public API and streams it into the queue"""
+        import httpx
+        url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,cardano&vs_currencies=usd"
+        logger.info(f"Producer {name} started LIVE streaming from CoinGecko...")
+        
+        while True:
+            try:
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(url, timeout=10)
+                    if response.status_code == 200:
+                        data = response.json()
+                        for coin, price in data.items():
+                            event = Event(
+                                type=EventType.DATA_INGEST,
+                                payload={"coin": coin, "price": price['usd'], "source": "CoinGecko API"},
+                                priority=3
+                            )
+                            await self.queue.put(event)
+                            logger.info(f"Live Ingest: {coin.upper()} is currently ${price['usd']}")
+                    
+                    # Wait for 10 seconds before next poll to avoid rate limits
+                    await asyncio.sleep(10)
+            except Exception as e:
+                logger.error(f"Live Stream Error: {e}")
+                await asyncio.sleep(5)
+
+
     async def consumer(self, name: str):
         """Simulates a worker processing events (e.g., writing to DB, alerting)"""
         while True:

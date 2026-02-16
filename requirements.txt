@@ -1,4 +1,6 @@
 pydantic>=1.10.0
 streamlit
 pandas
+httpx
+
 

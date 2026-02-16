@@ -13,6 +13,14 @@ st.set_page_config(page_title="Real-Time Event Engine", page_icon="⚡", layout=
 st.title("⚡ Real-Time Event Engine Monitor")
 st.markdown("Visualizing high-performance asynchronous event processing in Python.")
 
+# Persistent State Initialization
+if 'processor' not in st.session_state:
+    st.session_state.processor = RealTimeProcessor(queue_size=50)
+if 'engine_active' not in st.session_state:
+    st.session_state.engine_active = False
+if 'pending_injections' not in st.session_state:
+    st.session_state.pending_injections = []
+
 # Sidebar for configuration
 with st.sidebar:
     st.header("⚙️ Engine Configuration")
@@ -22,20 +30,35 @@ with st.sidebar:
         num_events = st.slider("Number of Events to Simulate", 10, 200, 50)
     else:
         st.info("Live mode will stream real prices from CoinGecko every 10 seconds.")
-        num_events = 9999 # Infinite-like for progress logic
+        num_events = 9999 
         
-    producers = st.number_input("Producer Tasks", 1, 5, 2 if mode == "Simulation" else 1)
     consumers = st.number_input("Consumer Workers", 1, 10, 4)
     
+    col_start, col_stop = st.columns(2)
+    if col_start.button("🚀 Start Engine", type="primary", use_container_width=True):
+        st.session_state.engine_active = True
+        st.session_state.processor.processed_count = 0 # Reset count on fresh start
+    
+    if col_stop.button("🛑 Stop Engine", use_container_width=True):
+        st.session_state.engine_active = False
+        st.rerun()
+
     st.divider()
     st.header("Manual Event Injector")
-    with st.form("injection_form"):
+    with st.form("injection_form", clear_on_submit=True):
         inj_type = st.selectbox("Event Type", [et.value for et in EventType])
         inj_prio = st.slider("Priority", 1, 5, 3)
         inj_data = st.text_input("Payload Data", "Manual Entry")
-        inject_button = st.form_submit_button("💉 Inject Event")
-
-    run_button = st.button("🚀 Start Engine", type="primary")
+        submitted = st.form_submit_button("💉 Inject Event")
+        
+        if submitted:
+            new_event = Event(
+                type=EventType(inj_type),
+                payload={"message": inj_data, "source": "Manual Dashboard Injection"},
+                priority=inj_prio
+            )
+            st.session_state.pending_injections.append(new_event)
+            st.toast(f"Event buffered for injection!", icon="📥")
 
 # UI Placeholders
 metrics_col1, metrics_col2, metrics_col3 = st.columns(3)
@@ -69,38 +92,12 @@ class StreamlitLogHandler(logging.Handler):
             self.logs.pop(0)
         self.placeholder.code("\n".join(self.logs))
 
-# Persistent Processor for manual injection
-if 'processor' not in st.session_state:
-    st.session_state.processor = RealTimeProcessor(queue_size=50)
-
-# Implementation of Manual Injection
-if inject_button:
-    event = Event(
-        type=EventType(inj_type),
-        payload={"message": inj_data, "source": "Manual Dashboard Injection"},
-        priority=inj_prio
-    )
-    # Since we can't easily wait for a running loop, we just drop it in the queue
-    # This works if the engine is running in an async task
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            asyncio.run_coroutine_threadsafe(st.session_state.processor.queue.put(event), loop)
-            st.toast(f"Event {event.event_id} Injected!", icon="✅")
-        else:
-            st.error("Engine is not running! Start the engine first to inject.")
-    except Exception:
-        # Fallback for sync context
-        st.session_state.processor.queue.put_nowait(event)
-        st.toast(f"Event Queued (Engine Offline)", icon="📥")
-
 # Main Simulation Function
-async def run_simulation(num_events, producers_count, consumers_count, mode):
+async def run_simulation(num_events, consumers_count, mode):
     # Setup Logger for UI
     handler = StreamlitLogHandler(log_area)
     handler.setFormatter(logging.Formatter('%(asctime)s | %(message)s', datefmt='%H:%M:%S'))
     logger = logging.getLogger("EventEngine")
-    # Avoid duplicate handlers
     if not any(isinstance(h, StreamlitLogHandler) for h in logger.handlers):
         logger.addHandler(handler)
 
@@ -109,8 +106,8 @@ async def run_simulation(num_events, producers_count, consumers_count, mode):
     
     # Run the Engine
     consumers = [asyncio.create_task(processor.consumer(f"C-{i}")) for i in range(consumers_count)]
-    
     producer_tasks = []
+
     if mode == "Simulation (Mock Data)":
         mock_events = [
             Event(
@@ -119,17 +116,22 @@ async def run_simulation(num_events, producers_count, consumers_count, mode):
                 priority=random.randint(1, 5)
             ) for _ in range(num_events)
         ]
-        chunk_size = max(1, len(mock_events) // producers_count)
-        for i in range(producers_count):
-            chunk = mock_events[i*chunk_size : (i+1)*chunk_size]
-            producer_tasks.append(asyncio.create_task(processor.producer(f"P-{i}", chunk)))
+        # Just use one fast producer for simulation
+        producer_tasks.append(asyncio.create_task(processor.producer("SIM-PRODUCER", mock_events)))
     else:
         # Live Data Mode
         producer_tasks.append(asyncio.create_task(processor.real_data_producer("LIVE-COINGECKO")))
 
     # Monitor progress
     try:
-        while True:
+        while st.session_state.engine_active:
+            # CHECK FOR PENDING INJECTIONS
+            if st.session_state.pending_injections:
+                while st.session_state.pending_injections:
+                    inj_event = st.session_state.pending_injections.pop(0)
+                    await processor.queue.put(inj_event)
+                    logger.info(f"Injecting Manual Event: {inj_event.event_id}")
+
             done_count = processor.processed_count
             dur = time.perf_counter() - start_time
             tp = done_count / dur if dur > 0 else 0
@@ -141,15 +143,16 @@ async def run_simulation(num_events, producers_count, consumers_count, mode):
             if mode == "Simulation (Mock Data)":
                 prog = min(done_count / num_events, 1.0)
                 progress_bar.progress(prog)
-                status_text.text(f"Processing... {done_count}/{num_events}")
+                status_text.text(f"Simulation Active... {done_count}/{num_events}")
                 if done_count >= num_events and processor.queue.empty():
+                    st.session_state.engine_active = False
                     break
             else:
-                progress_bar.progress((done_count % 100) / 100) # Cyclic progress for live
-                status_text.text(f"Streaming Live Data... Total Processed: {done_count}")
+                progress_bar.progress((done_count % 100) / 100)
+                status_text.text(f"LIVE STREAMING ACTIVE... Total Processed: {done_count}")
             
             chart_area.bar_chart(pd.DataFrame({
-                "Metric": ["Processed", "Queue Depth"],
+                "Metric": ["Processed", "In Queue"],
                 "Count": [done_count, processor.queue.qsize()]
             }).set_index("Metric"))
 
@@ -162,9 +165,8 @@ async def run_simulation(num_events, producers_count, consumers_count, mode):
             c.cancel()
         logger.removeHandler(handler)
 
-if run_button:
-    asyncio.run(run_simulation(num_events, producers, consumers, mode))
+if st.session_state.engine_active:
+    asyncio.run(run_simulation(num_events, consumers, mode))
 else:
-    st.info("Adjust the settings in the sidebar and click 'Start Engine' to see the asynchronous processor in action.")
-    st.image("https://img.shields.io/badge/Real--Time-Enabled-green?style=for-the-badge")
-
+    st.info("The engine is currently idle. Configure settings in the sidebar and click 'Start Engine' to begin.")
+    st.image("https://img.shields.io/badge/Engine-Ready-blue?style=for-the-badge")
